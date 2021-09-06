@@ -1,0 +1,30 @@
+---
+dns:
+  upstream: 8.8.8.8:53
+zones:
+  - zone: "zush.int"
+    endpoints:
+
+      # accounts.zush.int => localhost:8080
+      accounts:
+        resolve:
+          type: a
+          value: 127.0.0.1
+          ttl: 600
+        http:
+          path: /*
+          upstream: http://localhost:8081
+          headers:
+            blah: sdfas
+
+      # element.zush.int => localhost:8081
+      element:
+        resolve:
+          type: a
+          value: 127.0.0.1
+          ttl: 600
+        http:
+          path: /*
+          upstream: http://localhost:8080
+          headers:
+            blah: sdfas

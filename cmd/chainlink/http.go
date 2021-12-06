@@ -52,6 +52,7 @@ func (s httpServer) New() *chi.Mux {
 
 		hr.Map(host, r)
 	}
+
 	// Mount the host router
 	r.Mount("/", hr)
 

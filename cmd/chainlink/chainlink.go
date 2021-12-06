@@ -14,16 +14,18 @@ import (
 )
 
 var (
-	flagConfig      string
-	flagListenDNS   int
-	flagListenHTTP  int
-	flagListenHTTPS int
+	flagConfig            string
+	flagListenDNS         int
+	flagListenHTTP        int
+	flagListenHTTPS       int
+	flagChangeSysSettings string
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
 
 	flag.StringVar(&flagConfig, "c", "config.yaml", "Configuration file")
+	flag.StringVar(&flagChangeSysSettings, "i", "", "Changes system settings (Resolvers)")
 	flag.IntVar(&flagListenDNS, "listen-dns", 53, "DNS Listen Port")
 	flag.IntVar(&flagListenHTTP, "listen-http", 80, "HTTP Listen Port")
 	flag.IntVar(&flagListenHTTPS, "listen-https", 443, "HTTPS Listen Port")
@@ -31,6 +33,9 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	// Create the waitgroup
+	var wg = &sync.WaitGroup{}
 
 	configLogger := NewLogger("CONFIG_1", "\033[38;5;214m")
 	configLogger.Printf("-=-=-=-=-=-=-\n")
@@ -41,9 +46,6 @@ func main() {
 	if err := config.ParseFromFile(flagConfig); err != nil {
 		configLogger.Fatalf(err.Error())
 	}
-
-	// Create the waitgroup
-	var wg = &sync.WaitGroup{}
 
 	// Start the DNS Server
 	wg.Add(1)
@@ -59,6 +61,7 @@ func main() {
 			upstream: config.Registry.DNS.Upstream,
 			zones:    config.Registry.GetResolvers(),
 		}
+
 		if err := srv.ListenAndServe(); err != nil {
 			lg.Printf("Failed to set udp listener %s\n", err.Error())
 		}
@@ -81,6 +84,10 @@ func main() {
 			Routes: config.Registry.GetRoutes(),
 		}
 		srv.server.Handler = srv.New()
+		srv.server.RegisterOnShutdown(func() {
+			wg.Done()
+		})
+
 		if err := srv.server.ListenAndServe(); err != nil {
 			lg.Printf("Failed to set HTTP listener %s\n", err.Error())
 		}
@@ -103,6 +110,9 @@ func main() {
 			Routes: config.Registry.GetRoutes(),
 		}
 		srv.server.Handler = srv.New()
+		srv.server.RegisterOnShutdown(func() {
+			wg.Done()
+		})
 
 		if err := srv.ListenAndServeTLS(); err != nil {
 			lg.Printf("Failed to set HTTPS listener %s\n", err.Error())

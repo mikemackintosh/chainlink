@@ -1,31 +1,36 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/miekg/dns"
 	"github.com/mikemackintosh/chainlink/config"
 )
 
 var (
 	flagConfig            string
+	flagChangeSysSettings bool
 	flagListenDNS         int
 	flagListenHTTP        int
 	flagListenHTTPS       int
-	flagChangeSysSettings string
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
 
 	flag.StringVar(&flagConfig, "c", "config.yaml", "Configuration file")
-	flag.StringVar(&flagChangeSysSettings, "i", "", "Changes system settings (Resolvers)")
+	flag.BoolVar(&flagChangeSysSettings, "i", false, "Changes system settings (Resolvers)")
 	flag.IntVar(&flagListenDNS, "listen-dns", 53, "DNS Listen Port")
 	flag.IntVar(&flagListenHTTP, "listen-http", 80, "HTTP Listen Port")
 	flag.IntVar(&flagListenHTTPS, "listen-https", 443, "HTTPS Listen Port")
@@ -93,7 +98,7 @@ func main() {
 		}
 	}(wg)
 
-	// Start the DNS Server
+	// Start the HTTPS Server
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -119,5 +124,58 @@ func main() {
 		}
 	}(wg)
 
+	// Start the Management Server
+	if config.Registry.Mgmt != nil {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+
+			lg := NewLogger(" MGMT_5", "\033[38;5;86m")
+			lg.Printf("Starting Management Server\n")
+			lg.Printf("#=> Port: %s\n", config.Registry.Mgmt.Upstream)
+
+			// Set the handler to output the request
+			r := chi.NewRouter()
+			// Basic CORS
+			// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
+			r.Use(cors.Handler(cors.Options{
+				// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+				AllowedOrigins: []string{"https://chainlink.dev", "http://localhost:3000", "http://127.0.0.1:3000"},
+				// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+				AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+				ExposedHeaders:   []string{"Link"},
+				AllowCredentials: false,
+				MaxAge:           300, // Maximum value not ignored by any of major browsers
+			}))
+			r.Use(middleware.RequestID)
+			r.Use(middleware.RealIP)
+			r.Use(middleware.Logger)
+			r.Use(middleware.Recoverer)
+
+			// Set the default route for React
+			r.Get("/*", handlerReactProxy)
+
+			// Configure the api route mount
+			r.Mount("/api/", apiRouter())
+
+			log.Fatal(http.ListenAndServe(config.Registry.Mgmt.Upstream, r))
+
+		}(wg)
+	}
+
 	wg.Wait()
+}
+
+// A completely separate router for administrator routes
+func apiRouter() http.Handler {
+	r := chi.NewRouter()
+	r.Get("/config", adminIndex)
+	return r
+}
+
+func adminIndex(w http.ResponseWriter, r *http.Request) {
+	b, _ := json.MarshalIndent(config.Registry.Zones, "  ", "  ")
+
+	w.Write(b)
 }

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -110,9 +111,15 @@ type Proxy struct {
 // ProxyHandler is an HTTP proxy handler for specific routes. It will upstream the request
 // and update the ResponseWriter accordingly.
 func (p Proxy) ProxyHandler(w http.ResponseWriter, r *http.Request) {
-	url, _ := url.Parse(p.Upstream)
+
+	url, err := url.Parse(p.Upstream)
+	if err != nil {
+		log.Println("error:", err)
+		return
+	}
+
 	proxy := httputil.ReverseProxy{Director: func(r *http.Request) {
-		r.URL.Scheme = url.Scheme
+		r.URL.Scheme = "http"
 		r.URL.Host = url.Host
 		r.URL.Path = url.Path + r.URL.Path
 		r.Host = url.Host
@@ -138,7 +145,7 @@ func GenTLSKeyPair(hostnames []string) (tls.Certificate, error) {
 		Subject: pkix.Name{
 			CommonName:   "localhost",
 			Country:      []string{"USA"},
-			Organization: []string{"mikemackintosh"},
+			Organization: []string{"@mikemackintosh"},
 		},
 		NotBefore:             now,
 		NotAfter:              now.AddDate(10, 0, 0), // Valid for one day
@@ -166,4 +173,27 @@ func GenTLSKeyPair(hostnames []string) (tls.Certificate, error) {
 	outCert.PrivateKey = priv
 
 	return outCert, nil
+}
+
+func handlerReactProxy(w http.ResponseWriter, r *http.Request) {
+	if os.Getenv("ENVIRONMENT") == "prod" {
+		//fsys, err := fs.Sub(embeddedFiles, embeddedDir)
+		//if err != nil {
+		//	panic(err)
+		//}
+
+		//http.FileServer(http.FS(fsys)).ServeHTTP(w, r)
+		return
+	}
+
+	origin, _ := url.Parse("http://localhost:3000/")
+	director := func(req *http.Request) {
+		req.Header.Add("X-Forwarded-Host", req.Host)
+		req.Header.Add("X-Origin-Host", origin.Host)
+		req.URL.Scheme = "http"
+		req.URL.Host = origin.Host
+	}
+
+	proxy := &httputil.ReverseProxy{Director: director}
+	proxy.ServeHTTP(w, r)
 }

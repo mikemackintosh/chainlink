@@ -1,8 +1,11 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -10,12 +13,13 @@ import (
 var Registry *Configuration
 
 type Configuration struct {
-	DNS   ServerDNS   `yaml:"dns"`
-	HTTPS ServerHTTPS `yaml:"https"`
-	Zones []*Zone     `yaml:"zones"`
+	DNS   *UpstreamService `yaml:"dns"`
+	Mgmt  *UpstreamService `yaml:"mgmt"`
+	HTTPS ServerHTTPS      `yaml:"https"`
+	Zones []*Zone          `yaml:"zones"`
 }
 
-type ServerDNS struct {
+type UpstreamService struct {
 	Upstream string `yaml:"upstream"`
 }
 
@@ -35,7 +39,6 @@ type Route struct {
 	Path     string            `yaml:"path"`
 	Upstream string            `yaml:"upstream"`
 	Headers  map[string]string `yaml:"headers"`
-	Blah     string            `yaml:"blah"`
 }
 type Endpoint struct {
 	Resolve Resolve `yaml:"resolve"`
@@ -63,6 +66,27 @@ func ParseFromFile(f string) error {
 	return nil
 }
 
+// SaveFile will save the provided config file path.
+func SaveFile(f string) error {
+	b, err := json.Marshal(Registry)
+	if err != nil {
+		return err
+	}
+
+	c, err := os.Create(f)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	_, err = c.Write(b)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Decode will decode the configuration file bytes into the Configuration struct.
 func Decode(b []byte) (Configuration, error) {
 	var c Configuration
@@ -78,12 +102,18 @@ func Decode(b []byte) (Configuration, error) {
 // resolvers as []*Resolve.
 func (r *Configuration) GetResolvers() []*Resolve {
 	var zones = []*Resolve{}
+
+	// Add an internal route
+	zones = append(zones, &Resolve{Fqdn: "chainlink.config.", Type: "A", Value: "127.0.0.1", TTL: 3600})
+
 	for _, zone := range r.Zones {
 		for name, endpoint := range zone.Endpoints {
 			endpoint.Resolve.Fqdn = fmt.Sprintf("%s.%s.", name, zone.Zone)
+			endpoint.Resolve.Type = strings.ToUpper(endpoint.Resolve.Type)
 			zones = append(zones, &endpoint.Resolve)
 		}
 	}
+
 	return zones
 }
 
@@ -91,11 +121,19 @@ func (r *Configuration) GetResolvers() []*Resolve {
 // routes as []*Route.
 func (r *Configuration) GetRoutes() []*Route {
 	var zones = []*Route{}
+
+	zones = append(zones, &Route{Fqdn: "chainlink.config.", Path: "/*", Upstream: "http://" + r.Mgmt.Upstream, Headers: map[string]string{}})
+
 	for _, zone := range r.Zones {
 		for name, endpoint := range zone.Endpoints {
 			endpoint.Route.Fqdn = fmt.Sprintf("%s.%s.", name, zone.Zone)
 			zones = append(zones, &endpoint.Route)
 		}
 	}
+
+	for _, z := range zones {
+		fmt.Printf("%#v\n", *z)
+	}
+
 	return zones
 }

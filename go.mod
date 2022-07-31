@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/go-chi/chi/v5 v5.0.4
+	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/hostrouter v0.2.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/miekg/dns v1.1.43

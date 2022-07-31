@@ -109,7 +109,7 @@ func (h *dnsHandler) proxyUpstream(w dns.ResponseWriter, req *dns.Msg) error {
 	}
 
 	for _, answer := range resp.Answer {
-		fmt.Printf("\033[38;5;214m[ANSWER]\033[0m %#v\n", answer)
+		fmt.Printf("\033[38;5;214m[ANSWER]\033[0m %s\n", answer)
 	}
 
 	if err := w.WriteMsg(resp); err != nil {

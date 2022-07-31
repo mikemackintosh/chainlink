@@ -14,3 +14,9 @@ config:
 	sudo networksetup -setdnsservers Wi-Fi 127.0.0.1
 	sudo networksetup -setdnsservers Ethernet 127.0.0.1
 	sudo chflags schg /Library/Preferences/SystemConfiguration/preferences.plist
+
+dev:
+	(cd web && yarn start)
+	
+web:
+	(cd web && yarn build)

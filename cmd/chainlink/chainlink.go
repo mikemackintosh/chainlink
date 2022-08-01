@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +27,8 @@ var (
 	flagListenDNS         int
 	flagListenHTTP        int
 	flagListenHTTPS       int
+
+	httplog = NewLogger("  HTTP_3", "\033[38;5;75m")
 )
 
 func init() {
@@ -77,12 +82,11 @@ func main() {
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 
-		lg := NewLogger("  HTTP_3", "\033[38;5;75m")
-		lg.Printf("Starting HTTP Server\n")
-		lg.Printf("#=> Port: %d\n", flagListenHTTP)
+		httplog.Printf("Starting HTTP Server\n")
+		httplog.Printf("#=> Port: %d\n", flagListenHTTP)
 
 		srv := httpServer{
-			logger: lg,
+			logger: httplog,
 			server: &http.Server{
 				Addr: fmt.Sprintf(":%d", flagListenHTTP),
 			},
@@ -94,7 +98,7 @@ func main() {
 		})
 
 		if err := srv.server.ListenAndServe(); err != nil {
-			lg.Printf("Failed to set HTTP listener %s\n", err.Error())
+			httplog.Printf("Failed to set HTTP listener %s\n", err.Error())
 		}
 	}(wg)
 
@@ -171,10 +175,74 @@ func main() {
 func apiRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/config", adminIndex)
+	r.Post("/config", adminUpdate)
+	r.Delete("/config", adminDelete)
 	return r
 }
 
 func adminIndex(w http.ResponseWriter, r *http.Request) {
+	b, _ := json.MarshalIndent(config.Registry.Zones, "  ", "  ")
+
+	w.Write(b)
+}
+
+type ZoneUpdateRequest struct {
+	Fqdn     string `json:"fqdn"`
+	Upstream string `json:"upstream"`
+}
+
+func adminUpdate(w http.ResponseWriter, r *http.Request) {
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+
+	var newZone ZoneUpdateRequest
+	err = json.Unmarshal(b, &newZone)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	u, err := url.Parse(newZone.Fqdn)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	parts := strings.Split(u.Path, ".")
+	zone := parts[len(parts)-2] + "." + parts[len(parts)-1]
+	hostname := strings.Replace(u.Path, "."+zone, "", -1)
+
+	endpoint := config.Endpoint{
+		Resolve: config.Resolve{Fqdn: u.Path + ".", Type: "A", Value: "127.0.0.1", TTL: 3600},
+		Route:   config.Route{Fqdn: u.Path + ".", Path: "/*", Upstream: newZone.Upstream, Headers: map[string]string{}},
+	}
+
+	ep := map[string]*config.Endpoint{hostname: &endpoint}
+	config.Registry.Zones = append(config.Registry.Zones, &config.Zone{Zone: zone, Endpoints: ep})
+
+	var host = strings.Trim(endpoint.Route.Fqdn, ".")
+	httplog.Printf("Configuring %s -> %s\n", host+endpoint.Route.Path, endpoint.Route.Upstream)
+
+	router := chi.NewRouter()
+	p := Proxy{Upstream: endpoint.Route.Upstream, Path: endpoint.Route.Path, Headers: endpoint.Route.Headers, logger: httplog}
+	router.HandleFunc(p.Path, p.ProxyHandler)
+
+	hr.Map(host, router)
+
+	j, err := json.Marshal(map[string]interface{}{"zone": zone, "endpoints": ep})
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.Write(j)
+}
+
+func adminDelete(w http.ResponseWriter, r *http.Request) {
 	b, _ := json.MarshalIndent(config.Registry.Zones, "  ", "  ")
 
 	w.Write(b)

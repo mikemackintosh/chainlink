@@ -22,6 +22,8 @@ import (
 	"github.com/mikemackintosh/chainlink/config"
 )
 
+var hr = hostrouter.New()
+
 type httpServer struct {
 	server *http.Server
 	logger *Logger
@@ -42,7 +44,6 @@ func (s httpServer) New() *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	// Create a host router
-	hr := hostrouter.New()
 	for _, endpoint := range s.Routes {
 		var host = strings.Trim(endpoint.Fqdn, ".")
 		s.logger.Printf("Configuring %s -> %s\n", host+endpoint.Path, endpoint.Upstream)

@@ -1,38 +1,249 @@
+a {
+  text-decoration: none !important;
+}
+
 .App {
   text-align: center;
+  background-color: #2a3042;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.main-content .page-content {
+  margin: 64px;
+  padding: 24px 24px;
+  /* height: calc(100% - 150px); */
+  height: 100%;
+  box-sizing: content-box;
+  transition: all 0.5s ease;
+  border-radius: 14px;
+  background-color: #f8f8fb;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+.main-content .page-content h4 {
+  font-weight: 600;
+  font-size: 16px !important;
+  color: #495057;
+  padding-bottom: 24px;
+  margin: 0;
+}
+
+.main-content .page-content .message-content {
+  margin-left: 10px;
+}
+
+.main-content .page-content .message-content .text-top span:first-child {
+  font-size: 15px !important;
+  color: #495057;
+  padding-right: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25px;
+}
+
+.main-content .page-content .message-content .text-top span:last-child {
+  color: #9194a0;
+  padding-top: 1.5px;
+  font-style: italic;
+}
+
+.main-content .page-content .card-body {
+  box-shadow: 0 0.75rem 1.5rem rgba(18, 38, 63, 0.01);
+  border-radius: 0.25rem;
+}
+
+.non-message img {
+  width: calc(100% - 40%);
+}
+
+@media (min-width: 639px) {
+  .main-content {
+    padding-left: 250px;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+@media (max-width: 575.98px) {
+  .main-content .page-content .message-card .text-top {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 960px) {
+  .margin-right {
+    margin-right: 0 !important;
+  }
+}
+
+.nonVisible {
+  display: none;
+}
+
+.padding-none {
+  padding-left: 0 !important;
+}
+
+.margin-right {
+  margin-right: 350px;
+}
+
+.page {
+  width: 100vw;
+  height: 100vh;
+}
+
+.main-content {
+  transition: all 0.5s ease;
+  background-color: #2a3042;
+}
+
+.main-content .page-topbar {
+  padding: 12px 24px;
+  background-color: white;
+}
+
+.main-content .page-topbar .menu-btn {
+  cursor: pointer;
+}
+
+.main-content .page-topbar .menu-btn img {
+  width: 20px;
+}
+
+.main-content .header-profile img {
+  height: 37px;
+  width: 37px;
+  cursor: pointer;
+}
+
+.main-content .page-content .messages-box {
+  flex-grow: 1;
+  max-height: 770px;
+  overflow: auto;
+}
+
+.main-content .page-content .messages-box::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.main-content .page-content .messages-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content .page-content .messages-box::-webkit-scrollbar-thumb {
+  background: #2a304273;
+  border-radius: 5px;
+}
+
+.dropdown button {
+  padding: 0;
+  border-radius: 50%;
+  width: 39px;
+}
+
+.chat-content {
+  flex-grow: 1;
+}
+.logo {
+  padding: 0 1.5rem;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  align-items: center;
+  width: 250px;
+  height: 70px;
+}
+
+.logo .logo-name img {
+  height: 27px !important;
+  margin-right: 5px;
+  padding-bottom: 2px;
+}
+
+.logo img:last-child {
+  height: 16px;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 250px;
+  height: 100%;
+  background-color: #2a3042;
+  position: fixed;
+  top: 0;
+  z-index: 1;
+}
+
+.sidebar .vertical-menu {
+  overflow: auto;
+  height: calc(100% - 100px);
+}
+
+.sidebar:hover .vertical-menu::-webkit-scrollbar-thumb {
+  display: inline;
+}
+
+.sidebar .vertical-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar .vertical-menu::-webkit-scrollbar-thumb {
+  display: none;
+  background: #74788d;
+  border-radius: 10px;
+}
+
+.sidebar .vertical-menu ul {
+  padding: 0;
+}
+
+.logo-name {
+  font-size: 20px;
+  color: white;
+  letter-spacing: 2.5px;
+  font-weight: 600;
+}
+
+.sidebar .vertical-menu ul li {
+  list-style-type: none;
+  padding: 12px 22px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sidebar .vertical-menu .channel-item {
+  padding: 8px 8px 8px 32px !important;
+}
+
+.sidebar .vertical-menu ul li img {
+  height: 22px;
+  width: 22px;
+  margin-right: 8px;
+  padding-bottom: 2.5px;
+}
+
+.add-channel-btn {
+  height: 18px !important;
+  margin-right: 0 !important;
+}
+
+.sidebar .vertical-menu ul li span {
+  color: #a6b0cf;
+  transition: all 0.4s;
+}
+
+.sidebar .vertical-menu ul li:hover span {
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.sidebar .vertical-menu ul li .menu-title {
+  color: #6a7187 !important;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  cursor: default;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.sidebar .vertical-menu .zones {
+  border-top: 1px solid #a6b0cf1f;
+}
+
+.color-focus {
+  background-color: #a6b0cf1f;
 }

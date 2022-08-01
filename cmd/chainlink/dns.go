@@ -19,7 +19,7 @@ type dnsHandler struct {
 
 func (h *dnsHandler) ResolveQuery(queryType uint16, domain string, msg *dns.Msg) {
 	d := strings.ToLower(domain)
-	for _, zone := range h.zones {
+	for _, zone := range config.Registry.GetResolvers() {
 		if zone.Fqdn == d {
 			switch zone.Type {
 			case "A":

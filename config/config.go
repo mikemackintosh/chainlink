@@ -13,40 +13,40 @@ import (
 var Registry *Configuration
 
 type Configuration struct {
-	DNS   *UpstreamService `yaml:"dns"`
-	Mgmt  *UpstreamService `yaml:"mgmt"`
-	HTTPS ServerHTTPS      `yaml:"https"`
-	Zones []*Zone          `yaml:"zones"`
+	DNS   *UpstreamService `yaml:"dns" json:"-"`
+	Mgmt  *UpstreamService `yaml:"mgmt" json:"-"`
+	HTTPS ServerHTTPS      `yaml:"https" json:"-"`
+	Zones []*Zone          `yaml:"zones" json:"zones"`
 }
 
 type UpstreamService struct {
-	Upstream string `yaml:"upstream"`
+	Upstream string `yaml:"upstream" json:"-"`
 }
 
 type ServerHTTPS struct {
-	TLSCert string `yaml:"tls_cert"`
-	TLSKey  string `yaml:"tls_key"`
+	TLSCert string `yaml:"tls_cert" json:"-"`
+	TLSKey  string `yaml:"tls_key" json:"-"`
 }
 
 type Resolve struct {
-	Fqdn  string `yaml:"-"`
-	Type  string `yaml:"type"` // currently ignored in the code
-	Value string `yaml:"value"`
-	TTL   uint32 `yaml:"ttl"`
+	Fqdn  string `yaml:"-"  json:"fqdn"`
+	Type  string `yaml:"type"  json:"type"` // currently ignored in the code
+	Value string `yaml:"value"  json:"value"`
+	TTL   uint32 `yaml:"ttl"  json:"ttl"`
 }
 type Route struct {
-	Fqdn     string            `yaml:"-"`
-	Path     string            `yaml:"path"`
-	Upstream string            `yaml:"upstream"`
-	Headers  map[string]string `yaml:"headers"`
+	Fqdn     string            `yaml:"-"  json:"fqdn"`
+	Path     string            `yaml:"path"  json:"path"`
+	Upstream string            `yaml:"upstream"  json:"upstreeam"`
+	Headers  map[string]string `yaml:"headers" json:"headers"`
 }
 type Endpoint struct {
-	Resolve Resolve `yaml:"resolve"`
-	Route   Route   `yaml:"http"`
+	Resolve Resolve `yaml:"resolve" json:"resolve"`
+	Route   Route   `yaml:"http" json:"route"`
 }
 type Zone struct {
-	Zone      string               `yaml:"zone"`
-	Endpoints map[string]*Endpoint `yaml:"endpoints"`
+	Zone      string               `yaml:"zone" json:"zone"`
+	Endpoints map[string]*Endpoint `yaml:"endpoints" json:"endpoints"`
 }
 
 // ParseFromFile will read the provided config file path and decode it into a struct.
@@ -95,6 +95,12 @@ func Decode(b []byte) (Configuration, error) {
 		return c, err
 	}
 
+	endpoint := Endpoint{
+		Resolve: Resolve{Fqdn: "chainlink.config.", Type: "A", Value: "127.0.0.1", TTL: 3600},
+		Route:   Route{Fqdn: "chainlink.config.", Path: "/*", Upstream: "http://" + c.Mgmt.Upstream, Headers: map[string]string{}},
+	}
+	c.Zones = append(c.Zones, &Zone{Zone: "config", Endpoints: map[string]*Endpoint{"chainlink": &endpoint}})
+
 	return c, nil
 }
 
@@ -102,9 +108,6 @@ func Decode(b []byte) (Configuration, error) {
 // resolvers as []*Resolve.
 func (r *Configuration) GetResolvers() []*Resolve {
 	var zones = []*Resolve{}
-
-	// Add an internal route
-	zones = append(zones, &Resolve{Fqdn: "chainlink.config.", Type: "A", Value: "127.0.0.1", TTL: 3600})
 
 	for _, zone := range r.Zones {
 		for name, endpoint := range zone.Endpoints {
@@ -121,8 +124,6 @@ func (r *Configuration) GetResolvers() []*Resolve {
 // routes as []*Route.
 func (r *Configuration) GetRoutes() []*Route {
 	var zones = []*Route{}
-
-	zones = append(zones, &Route{Fqdn: "chainlink.config.", Path: "/*", Upstream: "http://" + r.Mgmt.Upstream, Headers: map[string]string{}})
 
 	for _, zone := range r.Zones {
 		for name, endpoint := range zone.Endpoints {

@@ -1,56 +1,80 @@
-import React from 'react';
+import React, { useState, useEffect} from "react";
+import classNames from "classnames";
 import {
   withRouter,
   Route,
   Switch,
-  BrowserRouter as Router,
 } from "react-router-dom";
 
-import CookieConsent from "react-cookie-consent";
-
-import Navbar from './components/navbar.js';
 import Home from './pages/home.js';
+import AddNew from './pages/addnew.js';
 import Hosts from './pages/hosts.js';
 import NotFound from './pages/not_found.js';
+import Sidebar from "./components/sidebar.js";
+
 import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const routes = [
   { path: "/", component: Home },
-  { path: "/hosts", component: Hosts },
+  { path: "/hosts/addnew", component: AddNew },
+  { path: "/hosts/:zone", component: Hosts },
 ];
 
 const App = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [zones, setZones] = useState([])
+
+  function getZones(){
+    fetch("http://chainlink.config/api/config")
+      .then((res) => res.json())
+      .then((json) => {
+        setZones(json)
+      });
+  }
+
+  useEffect(() => {
+    getZones()
+  }, []);
+
   return (
     <>
     <div className="App">
-<div class="relative bg-white overflow-hidden">
-  <div class="max-w-7xl mx-auto">
-    <div class="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+      <div className="relative overflow-hidden">
+        <div className="mx-auto">
+          <div className="relative ">
+            <div className="page">
+              <Sidebar
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                setZones={setZones}
+                zones={zones}
+              />
 
-      <Navbar />
+              <div className={classNames("main-content", "w-100", "h-100", {
+                  "padding-none": !sidebarOpen
+                })}>
 
-      <Switch>
-        {routes.map((route, idx) => (
-          <Route path={route.path} exact component={route.component} key={idx} />
-        ))}
-        <Route component={NotFound} />
-      </Switch>
+                <div className={"page-content"}>
 
-      </div>
-      </div>
-      </div>
-      </div>
+                  <Switch>
+                    {routes.map((route, idx) => (
+                      <Route path={route.path} exact render={(props) => <route.component
+                        {...props}
+                        setZones={setZones}
+                        zones={zones} />}
+                        key={idx} />
+                    ))}
+                    <Route component={NotFound} />
+                  </Switch>
 
-      <CookieConsent
-        location="bottom"
-        buttonText="Continue"
-        cookieName="ags-cc-store1"
-        style={{ background: "rgb(32 40 64)" }}
-        buttonStyle={{ background: "#335eea", color: "#ffffff", fontSize: "14px", borderRadius: '8px' }}
-        expires={7}>
-        <b>We use cookies to enhance your experience.{" "}</b>
-        <span style={{ fontSize: "12px" }}>For the record, we don't sell any of your data.</span>
-      </CookieConsent>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     </>
   );
 }

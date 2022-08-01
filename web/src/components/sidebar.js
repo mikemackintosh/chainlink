@@ -26,6 +26,7 @@ function Sidebar(props) {
           {props.zones.length &&
             props.zones.map((zone, idx) => {
               console.log("zone", zone);
+              console.log("    keys", Object.keys(zone.endpoints));
 
               return (
               <li

@@ -55,13 +55,20 @@ const AddNew = (props) => {
        const content = await rawResponse.json();
        console.log(content);
 
-       const found = props.zones.find(obj => {
+       var newZoneList = zones
+       const foundIndex = newZoneList.findIndex(obj => {
          return obj.zone === content.zone;
        });
 
-       var newZoneList = zones
+       if ( foundIndex != -1 ) {
+         console.log("Found matching zone, adding new endpoint")
+         newZoneList[foundIndex].endpoints[Object.keys(content.endpoints)[0]] = content.endpoints[Object.keys(content.endpoints)[0]]
+       } else {
+         console.log("Adding new zone")
+         newZoneList.push(content)
+       }
+
        console.log("zones", zones)
-       newZoneList.push(content)
        console.log("newZoneList", newZoneList)
        setZones(() => [...zones, newZoneList]);
      })();

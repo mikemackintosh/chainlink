@@ -216,13 +216,17 @@ func adminUpdate(w http.ResponseWriter, r *http.Request) {
 	zone := parts[len(parts)-2] + "." + parts[len(parts)-1]
 	hostname := strings.Replace(u.Path, "."+zone, "", -1)
 
-	endpoint := config.Endpoint{
+	endpoint := &config.Endpoint{
 		Resolve: config.Resolve{Fqdn: u.Path + ".", Type: "A", Value: "127.0.0.1", TTL: 3600},
 		Route:   config.Route{Fqdn: u.Path + ".", Path: "/*", Upstream: newZone.Upstream, Headers: map[string]string{}},
 	}
 
-	ep := map[string]*config.Endpoint{hostname: &endpoint}
-	config.Registry.Zones = append(config.Registry.Zones, &config.Zone{Zone: zone, Endpoints: ep})
+	ep := map[string]*config.Endpoint{hostname: endpoint}
+	if _, z, ok := config.Registry.FindZone(zone); ok {
+		z.Endpoints[hostname] = endpoint
+	} else {
+		config.Registry.Zones = append(config.Registry.Zones, &config.Zone{Zone: zone, Endpoints: ep})
+	}
 
 	var host = strings.Trim(endpoint.Route.Fqdn, ".")
 	httplog.Printf("Configuring %s -> %s\n", host+endpoint.Route.Path, endpoint.Route.Upstream)

@@ -138,3 +138,15 @@ func (r *Configuration) GetRoutes() []*Route {
 
 	return zones
 }
+
+// GetRoutes will loop through all zones and endpoint and return all configurred
+// routes as []*Route.
+func (r *Configuration) FindZone(zone string) (int, *Zone, bool) {
+	for idx, z := range r.Zones {
+		if zone == z.Zone {
+			return idx, z, true
+		}
+	}
+
+	return 0, nil, false
+}

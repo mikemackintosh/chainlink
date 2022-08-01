@@ -23,6 +23,7 @@ const routes = [
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [updatedZones, updateZones] = useState(false);
   const [zones, setZones] = useState([])
 
   function getZones(){
@@ -36,6 +37,13 @@ const App = () => {
   useEffect(() => {
     getZones()
   }, []);
+
+  useEffect(() => {
+    if (updatedZones) {
+      getZones();
+      updateZones(false);
+    }
+  }, [updatedZones]);
 
   return (
     <>
@@ -62,7 +70,8 @@ const App = () => {
                       <Route path={route.path} exact render={(props) => <route.component
                         {...props}
                         setZones={setZones}
-                        zones={zones} />}
+                        zones={zones}
+                        updateZones={updateZones} />}
                         key={idx} />
                     ))}
                     <Route component={NotFound} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect} from "react";
 import classNames from "classnames";
-import { Form, FormGroup, Label, FormFeedback, FormText, Input, Row, Col, Button } from "reactstrap";
+import { Form, FormGroup, Label, FormFeedback, FormText, Input, Row, Col, Button, Redirect } from "reactstrap";
 import Sidebar from "../components/sidebar.js";
 
 import { useLocation, Link, useParams } from 'react-router-dom';
@@ -11,7 +11,7 @@ const AddNew = (props) => {
   const [fqdnInput, setFqdnInput] = useState("");
   const [validate, setValidate] = useState({fqdn: null, upstream: null});
   const [upstreamInput, setUpstreamInput] = useState("");
-  const { setZones, zones } = props;
+  const { updateZones } = props;
 
   let { zone } = useParams();
 
@@ -55,33 +55,21 @@ const AddNew = (props) => {
        const content = await rawResponse.json();
        console.log(content);
 
-       var newZoneList = zones
-       const foundIndex = newZoneList.findIndex(obj => {
-         return obj.zone === content.zone;
-       });
-
-       if ( foundIndex != -1 ) {
-         console.log("Found matching zone, adding new endpoint")
-         newZoneList[foundIndex].endpoints[Object.keys(content.endpoints)[0]] = content.endpoints[Object.keys(content.endpoints)[0]]
-       } else {
-         console.log("Adding new zone")
-         newZoneList.push(content)
-       }
-
-       console.log("zones", zones)
-       console.log("newZoneList", newZoneList)
-       setZones(() => [...zones, newZoneList]);
+       props.updateZones(true);
+       setValidate({fqdn: null, upstream: null});
+       window.location = "/hosts/"+content.zone;
      })();
 
 
      setFqdnInput(() => "");
+     setUpstreamInput(() => "");
    }
 
   useEffect(() => {
     const found = props.zones.find(obj => {
       return obj.zone === zone;
     });
-    console.log("found", found)
+
     setZoneData(found)
   }, [props])
 

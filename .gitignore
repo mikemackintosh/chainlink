@@ -1,5 +1,1 @@
-bin/*
-config.yaml
-*.crt
-*.key
-node_modules/
+example-config.yaml

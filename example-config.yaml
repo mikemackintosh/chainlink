@@ -1,6 +1,10 @@
 ---
 dns:
   upstream: 8.8.8.8:53
+
+mgmt:
+  upstream: 127.0.0.1:8443
+
 zones:
   - zone: "zush.int"
     endpoints:
